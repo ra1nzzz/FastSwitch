@@ -12,10 +12,10 @@ Mac mini M2（Apple Silicon）+ Windows 11 游戏本共用一台 AOC U27U2DS，�
 
 | 方向 | 操作 | 耗时 |
 | --- | --- | --- |
-| **Windows → Mac** | 双击 `windows/SwitchToMac.bat`（已可绑 `Ctrl+Alt+M`） | 约 16 秒 |
-| **Mac → Windows** | 双击 `mac/切到 Windows.command`，或终端 `m1ddc set input 18` | 秒切 |
+| **Windows → Mac** | 按 `Ctrl+Alt+M`（绑桌面快捷方式）或双击 `windows/SwitchToMac.bat` | 约 16 秒 |
+| **Mac → Windows** | 按 `Ctrl+Alt+W`（Hammerspoon 全局热键，已实测）或双击 `mac/切到 Windows.command` | 秒切 |
 
-- Mac 端：`brew install m1ddc`，脚本见 [`mac/`](./mac/)。
+- Mac 端：`brew install m1ddc` +（可选）Hammerspoon 绑热键，脚本见 [`mac/`](./mac/)。
 - Windows 端：直接用 [`windows/`](./windows/) 里的零依赖 PowerShell 脚本（只调系统自带 dxva2 API，无需安装任何软件）。
 
 ---
@@ -27,7 +27,8 @@ FastSwitch/
 ├── README.md                    # 本文件（总览 + 调研 + 双端方案）
 ├── mac/
 │   ├── fastswitch.sh            # macOS 输入源切换（基于 m1ddc）
-│   └── 切到 Windows.command      # 双击即切到 Windows
+│   ├── 切到 Windows.command      # 双击即切到 Windows
+│   └── hammerspoon-init.lua     # Hammerspoon 全局热键配置（Ctrl+Alt+W）
 └── windows/
     ├── README-Windows.md        # Windows 端详细说明与故障排查
     ├── SwitchToMac.bat          # 双击/热键入口
@@ -169,7 +170,25 @@ m1ddc display list          # 能看到 U27U2 系列即说明 DDC 通道正常
 # 或双击：mac/切到 Windows.command
 ```
 
-### 绑热键
+### 绑全局热键（推荐 Hammerspoon，已实测）
+
+用 [Hammerspoon](https://www.hammerspoon.org/)（开源，菜单栏常驻）可绑一个任何界面都能触发的全局热键：
+
+```bash
+brew install --cask hammerspoon
+mkdir -p ~/.hammerspoon
+cp mac/hammerspoon-init.lua ~/.hammerspoon/init.lua
+open -a Hammerspoon        # 首次启动按提示授予「辅助功能」权限
+```
+
+授权后在菜单栏 Hammerspoon 里勾选 **Launch Hammerspoon at login**（重启后热键仍在）。热键：
+
+- **`Ctrl + Alt + W`**：切到 Windows（HDMI2，内部执行 `m1ddc set input 18`）
+- **`Ctrl + Alt + Cmd + R`**：重载 Hammerspoon 配置
+
+> 改动配置后在菜单栏选 **Reload Config**。可在 Console 里用 `return hs.accessibilityState()` 确认权限、用 `Enabled hotkey ⌃⌥W` 日志确认热键已注册。
+
+### 备选热键方案（零安装）
 
 在「快捷指令」App 新建「快速操作」→ 添加「运行 Shell 脚本」→ 填 `fastswitch.sh` 的绝对路径加 `win` 参数，再到系统设置 → 键盘 → 快捷键 → 服务中绑定。也可用 Raycast 扩展「Display Input Switcher」（m1ddc 的 GUI）。
 
