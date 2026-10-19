@@ -25,6 +25,7 @@
 | `SwitchToMac.bat` | **双击/热键入口**。内部调用下面的 ps1 |
 | `SwitchToMac.ps1` | **切到 Mac 的完整序列**：发 DDC → 切 HDMI → 等待 → 恢复 HDMI（约 16 秒，全自动） |
 | `MonitorInput.ps1` | 零依赖 DDC 工具，直接调 Windows 自带 dxva2 API。支持 `list/get/caps/dump/usbc/hdmi1/hdmi2/set/getcode/setcode` 等 |
+| `FastSwitch.Tray/` | 后台托盘程序源码与图标；发布后按 `Ctrl+Alt+M` 切换 |
 
 > 无需安装 ControlMyMonitor、PowerToys、Python 等任何第三方软件。PowerShell 5.1 自带即可运行。
 
@@ -42,6 +43,18 @@
 4. `displayswitch /extend` 恢复 HDMI 输出——此时屏幕已稳定在 Mac，不会跳回。
 
 结束后屏幕稳定在 Mac，同时 Windows 在后台恢复了 HDMI 输出，因此 Mac 端可以随时秒切回来。
+
+### 后台快捷键版（托盘程序）
+
+需要按快捷键直接切换时，可使用 `FastSwitch.Tray`。程序常驻系统托盘，按 **Ctrl+Alt+M** 切到 Mac；右键托盘图标也可手动切换或退出。快捷键只在程序运行时有效。
+
+在仓库根目录运行以下命令生成 Windows x64 单文件程序：
+
+```powershell
+dotnet publish .\windows\FastSwitch.Tray\FastSwitch.Tray.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o .\windows\FastSwitch.Tray\publish
+```
+
+运行 `windows\FastSwitch.Tray\publish\FastSwitch.exe` 后，托盘图标会显示快捷键已注册。要让程序每次登录 Windows 自动运行，可将该 EXE 的快捷方式放入 `Win+R` 打开的 `shell:startup` 文件夹。
 
 ### Mac → Windows
 

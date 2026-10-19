@@ -12,7 +12,7 @@ Mac mini M2（Apple Silicon）+ Windows 11 游戏本共用一台 AOC U27U2DS，�
 
 | 方向 | 操作 | 耗时 |
 | --- | --- | --- |
-| **Windows → Mac** | 双击 `windows/SwitchToMac.bat`（已可绑 `Ctrl+Alt+M`） | 约 16 秒 |
+| **Windows → Mac** | 运行托盘版 `FastSwitch.exe` 后按 `Ctrl+Alt+M`；也可双击 `windows/SwitchToMac.bat` | 约 16 秒 |
 | **Mac → Windows** | 双击 `mac/切到 Windows.command`，或终端 `m1ddc set input 18` | 秒切 |
 
 - Mac 端：`brew install m1ddc`，脚本见 [`mac/`](./mac/)。
@@ -181,11 +181,9 @@ MonitorControl（MIT，仅亮度/音量，不做输入切换）、BetterDisplay�
 
 ## 8. Windows 端配置
 
-**推荐：直接用本仓库 [`windows/`](./windows/) 零依赖脚本**，详见 [windows/README-Windows.md](./windows/README-Windows.md)。
+**命令行/双击方式：**用本仓库 [`windows/`](./windows/) 中的 PowerShell 脚本，无需安装第三方软件，详见 [windows/README-Windows.md](./windows/README-Windows.md)。
 
-1. 把 `windows/` 目录里 4 个文件放到任意文件夹；
-2. 双击 `SwitchToMac.bat` 即可切到 Mac（约 16 秒）；
-3. 右键 → 发送到桌面快捷方式 → 属性 → 快捷键，可绑 `Ctrl+Alt+M`。
+**后台快捷键方式：**用 `windows/FastSwitch.Tray` 项目发布单文件 `FastSwitch.exe`。它常驻系统托盘，按 `Ctrl+Alt+M` 切到 Mac，也可以从托盘菜单切换或退出。构建命令见 [Windows 端说明](./windows/README-Windows.md)。
 
 **备选方案**（都需要安装软件，本仓库主流程不依赖）：
 - PowerToys → Power Display → Input source 选 USB-C（官方开源 GUI）；

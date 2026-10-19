@@ -22,3 +22,8 @@ restore.txt
 ssh_status.txt
 switch_log.txt
 switch_final.txt
+
+# Windows tray app build output
+windows/FastSwitch.Tray/bin/
+windows/FastSwitch.Tray/obj/
+windows/FastSwitch.Tray/publish/
