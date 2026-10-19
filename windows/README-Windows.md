@@ -23,7 +23,7 @@
 | 文件 | 作用 |
 | --- | --- |
 | `SwitchToMac.bat` | **双击/热键入口**。内部调用下面的 ps1 |
-| `SwitchToMac.ps1` | **切到 Mac 的完整序列**：发 DDC → 切 HDMI → 等待 → 恢复 HDMI（约 16 秒，全自动） |
+| `SwitchToMac.ps1` | **切到 Mac 的完整序列**：发 DDC → 切 HDMI → 等待 → 以仅外接屏模式恢复 HDMI（约 16 秒，全自动） |
 | `MonitorInput.ps1` | 零依赖 DDC 工具，直接调 Windows 自带 dxva2 API。支持 `list/get/caps/dump/usbc/hdmi1/hdmi2/set/getcode/setcode` 等 |
 | `FastSwitch.Tray/` | 后台托盘程序源码与图标；发布后按 `Ctrl+Alt+M` 切换 |
 
@@ -40,9 +40,9 @@
 1. 在 HDMI 活动时发 DDC `Input Select = USB-C(27)`；
 2. 立即 `displayswitch /internal`（仅内屏，停止 HDMI 输出）——阻止无信号回退；
 3. 等待 12 秒（覆盖 USB-C 6.5 秒冷启动）；
-4. `displayswitch /extend` 恢复 HDMI 输出——此时屏幕已稳定在 Mac，不会跳回。
+4. `displayswitch /external` 恢复 HDMI 输出并关闭笔记本内屏——此时屏幕已稳定在 Mac，不会跳回。
 
-结束后屏幕稳定在 Mac，同时 Windows 在后台恢复了 HDMI 输出，因此 Mac 端可以随时秒切回来。
+结束后屏幕稳定在 Mac，同时 Windows 在后台仅向 HDMI 外接屏输出，因此 Mac 端切回 Windows 时默认就是「仅第二屏幕」。
 
 ### 后台快捷键版（托盘程序）
 
@@ -117,9 +117,9 @@ displayswitch /external   # 仅外接屏
 
 ## 6. 显示模式说明
 
-- 脚本结束时 Windows 处于「扩展」模式（内屏 + 外接屏都输出）。外接屏被 scaler 显示为 Mac，因此 Windows 上的外接屏内容不可见，但不影响切回；
-- 如果你日常用「仅外接屏」（内屏关闭），把 `SwitchToMac.ps1` 末尾的 `displayswitch.exe /extend` 改成 `/external`；
-- 切到 Mac 后，部分 Windows 窗口可能停留在外接屏（不可见），切回 Windows 后恢复正常。
+- 脚本结束时 Windows 处于「仅第二屏幕」模式，笔记本内屏关闭，Windows 继续向 HDMI 输出；
+- 外接屏显示 Mac 画面期间，Windows 桌面仍在 HDMI 后台输出；切回 HDMI 后即可在外接屏上使用 Windows；
+- 如需恢复内屏和外接屏扩展，手动运行 `displayswitch.exe /extend`。
 
 ---
 

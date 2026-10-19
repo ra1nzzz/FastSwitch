@@ -88,13 +88,13 @@ internal sealed class TrayApplicationContext : ApplicationContext
                 await Task.Delay(TimeSpan.FromSeconds(1));
             }
 
-            await RunDisplaySwitchAsync("/extend");
+            await RunDisplaySwitchAsync("/external");
             internalModeEnabled = false;
             await Task.Delay(TimeSpan.FromSeconds(2));
             _icon.Text = "FastSwitch：Ctrl+Alt+M 切换到 Mac";
             if (string.IsNullOrEmpty(ddcWarning))
             {
-                _icon.ShowBalloonTip(3000, "已切换到 Mac", "Windows HDMI 输出已恢复，可从 Mac 切回。", ToolTipIcon.Info);
+                _icon.ShowBalloonTip(3000, "已切换到 Mac", "Windows 已切为仅外接屏；切回 Windows 时笔记本内屏保持关闭。", ToolTipIcon.Info);
             }
             else
             {
@@ -110,11 +110,11 @@ internal sealed class TrayApplicationContext : ApplicationContext
             {
                 try
                 {
-                    await RunDisplaySwitchAsync("/extend");
+                    await RunDisplaySwitchAsync("/external");
                 }
                 catch (Exception restoreError)
                 {
-                    errorMessage = $"{errorMessage} HDMI 恢复也失败：{restoreError.Message}";
+                    errorMessage = $"{errorMessage} 外接屏恢复也失败：{restoreError.Message}";
                 }
             }
             _icon.Text = "FastSwitch：切换失败";

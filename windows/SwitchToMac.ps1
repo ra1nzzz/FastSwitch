@@ -14,11 +14,12 @@
        source disappears before the monitor's auto-revert timer can fire,
        so it stays on USB-C and waits out the cold start.
     3. Wait for the Mac to come up and stabilize (12s).
-    4. Restore HDMI output (displayswitch /extend). The screen is already
-       locked on the stable Mac image and will NOT jump back.
+    4. Restore HDMI output in external-only mode (displayswitch /external),
+       leaving the laptop panel off. The screen is already locked on the
+       stable Mac image and will NOT jump back.
     5. Windows keeps outputting HDMI in the background, so when the Mac
        later sends m1ddc "set input 18" the switch back to Windows is
-       instant. No SSH / network needed.
+       instant and uses only the external monitor. No SSH / network needed.
 
   Requirements:
     - OSD Extra -> DDC/CI = Yes
@@ -65,13 +66,13 @@ Start-Sleep -Seconds 2
 Write-Host "[3/4] Wait for the Mac to come up and stabilize ..."
 Wait-Countdown 12 "waiting for Mac"
 
-Write-Host "[4/4] Restore HDMI output (Mac is stable, will not jump back) ..."
-& displayswitch.exe /extend
+Write-Host "[4/4] Restore HDMI output in external-only mode (Mac is stable) ..."
+& displayswitch.exe /external
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "Could not restore extended display mode. Run 'displayswitch.exe /extend' manually."
+    Write-Error "Could not restore external-only display mode. Run 'displayswitch.exe /external' manually."
     exit 1
 }
 Start-Sleep -Seconds 2
 
-Write-Host "=== Done: screen should stay on the Mac; HDMI is restored in the background. ==="
+Write-Host "=== Done: screen should stay on the Mac; HDMI is restored in external-only mode. ==="
 Write-Host "=== On the Mac, run: m1ddc set input 18  to switch back to Windows. ==="
