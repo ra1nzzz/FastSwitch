@@ -12,7 +12,7 @@ Mac mini M2（Apple Silicon）+ Windows 11 游戏本共用一台 AOC U27U2DS，�
 
 | 方向 | 操作 | 耗时 |
 | --- | --- | --- |
-| **Windows → Mac** | 按 `Ctrl+Alt+M`（绑桌面快捷方式）或双击 `windows/SwitchToMac.bat` | 约 16 秒 |
+| **Windows → Mac** | 运行托盘版 `FastSwitch.exe` 后按 `Ctrl+Alt+M`；也可双击 `windows/SwitchToMac.bat` | 约 16 秒 |
 | **Mac → Windows** | 按 `Ctrl+Alt+W`（Hammerspoon 全局热键，已实测）或双击 `mac/切到 Windows.command` | 秒切 |
 
 - Mac 端：`brew install m1ddc` +（可选）Hammerspoon 绑热键，脚本见 [`mac/`](./mac/)。
@@ -33,7 +33,12 @@ FastSwitch/
     ├── README-Windows.md        # Windows 端详细说明与故障排查
     ├── SwitchToMac.bat          # 双击/热键入口
     ├── SwitchToMac.ps1          # 切到 Mac 的完整时序（自动断/恢复 HDMI）
-    └── MonitorInput.ps1         # 零依赖 DDC 工具（内联 C# 调 dxva2）
+    ├── MonitorInput.ps1         # 零依赖 DDC 工具（内联 C# 调 dxva2）
+    └── FastSwitch.Tray/         # 后台托盘程序（C# / WinForms，常驻托盘 + 全局热键 Ctrl+Alt+M）
+        ├── Program.cs           # 托盘图标、RegisterHotKey、DDC 调用与切换时序
+        ├── FastSwitch.Tray.csproj
+        ├── app.manifest
+        └── FastSwitch.ico
 ```
 
 ---
@@ -200,11 +205,9 @@ MonitorControl（MIT，仅亮度/音量，不做输入切换）、BetterDisplay�
 
 ## 8. Windows 端配置
 
-**推荐：直接用本仓库 [`windows/`](./windows/) 零依赖脚本**，详见 [windows/README-Windows.md](./windows/README-Windows.md)。
+**命令行/双击方式：**用本仓库 [`windows/`](./windows/) 中的 PowerShell 脚本，无需安装第三方软件，详见 [windows/README-Windows.md](./windows/README-Windows.md)。
 
-1. 把 `windows/` 目录里 4 个文件放到任意文件夹；
-2. 双击 `SwitchToMac.bat` 即可切到 Mac（约 16 秒）；
-3. 右键 → 发送到桌面快捷方式 → 属性 → 快捷键，可绑 `Ctrl+Alt+M`。
+**后台快捷键方式：**用 `windows/FastSwitch.Tray` 项目发布单文件 `FastSwitch.exe`。它常驻系统托盘，按 `Ctrl+Alt+M` 切到 Mac，也可以从托盘菜单切换或退出。构建命令见 [Windows 端说明](./windows/README-Windows.md)。
 
 **备选方案**（都需要安装软件，本仓库主流程不依赖）：
 - PowerToys → Power Display → Input source 选 USB-C（官方开源 GUI）；

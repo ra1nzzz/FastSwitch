@@ -44,18 +44,33 @@ function Wait-Countdown($seconds, $label) {
 Write-Host "=== SwitchToMac start ==="
 
 Write-Host "[1/4] Send DDC Input Select = USB-C (27) while HDMI is active ..."
-powershell -NoProfile -ExecutionPolicy Bypass -File $ddc usbc
-Write-Host "    Sent; monitor is switching."
+$ddcOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $ddc usbc 2>&1
+$ddcExitCode = $LASTEXITCODE
+$ddcOutput | ForEach-Object { Write-Host $_ }
+$ddcText = $ddcOutput -join "`n"
+if ($ddcExitCode -ne 0 -or $ddcText -notmatch '(?is)\[Monitor \d+\]\s+(?:AOC[^\r\n]*U27U2DS|U27U2DS)[^\r\n]*[\r\n]+\s+SetVCPFeature 0x60=27 -> OK') {
+    Write-Error "DDC switch to USB-C failed on the AOC monitor. HDMI output was left unchanged."
+    exit 1
+}
+Write-Host "    USB-C input selected on the AOC monitor."
 
 Write-Host "[2/4] Immediately stop HDMI output (internal only) to block revert ..."
-displayswitch.exe /internal
+& displayswitch.exe /internal
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Could not switch Windows to internal display mode; aborting."
+    exit 1
+}
 Start-Sleep -Seconds 2
 
 Write-Host "[3/4] Wait for the Mac to come up and stabilize ..."
 Wait-Countdown 12 "waiting for Mac"
 
 Write-Host "[4/4] Restore HDMI output (Mac is stable, will not jump back) ..."
-displayswitch.exe /extend
+& displayswitch.exe /extend
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Could not restore extended display mode. Run 'displayswitch.exe /extend' manually."
+    exit 1
+}
 Start-Sleep -Seconds 2
 
 Write-Host "=== Done: screen should stay on the Mac; HDMI is restored in the background. ==="

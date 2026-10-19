@@ -41,6 +41,15 @@ param(
     [string]$Code
 )
 
+if ($Action -in @('set', 'setcode') -and -not $PSBoundParameters.ContainsKey('Value')) {
+    Write-Error "Action '$Action' requires -Value (decimal)."
+    exit 1
+}
+if ($Action -in @('set', 'setcode') -and $Value -lt 0) {
+    Write-Error "-Value must be zero or greater."
+    exit 1
+}
+
 # ---------------------------------------------------------------------------
 # Inline C# interop with the Windows low-level monitor APIs (dxva2 / user32).
 # ---------------------------------------------------------------------------
@@ -193,10 +202,6 @@ function Invoke-Action($handle, [int]$index) {
         }
 
         'set' {
-            if ($null -eq $PSBoundParameters['Value'] -and -not ($Value -is [int])) {
-                Write-Output "ERROR: set requires a decimal value, e.g. set 27."
-                exit 1
-            }
             if ([DDC]::SetVCPFeature($h, 0x60, [uint32]$Value)) {
                 Write-Output ("    SetVCPFeature 0x60={0} -> OK" -f $Value)
             } else {
@@ -216,10 +221,6 @@ function Invoke-Action($handle, [int]$index) {
 
         'setcode' {
             $c = Resolve-Code $Code
-            if (-not ($Value -is [int])) {
-                Write-Output "ERROR: setcode requires -Value (decimal), e.g. setcode -Code CC -Value 5."
-                exit 1
-            }
             if ([DDC]::SetVCPFeature($h, $c, [uint32]$Value)) {
                 Write-Output ("    SetVCPFeature 0x{0:X2}={1} -> OK" -f $c, $Value)
             } else {

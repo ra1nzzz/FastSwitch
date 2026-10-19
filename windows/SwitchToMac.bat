@@ -13,6 +13,14 @@ REM          (e.g. Ctrl+Alt+M)
 REM ============================================================
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0SwitchToMac.ps1"
+if errorlevel 1 goto failed
 echo.
 echo Done. This window closes in 3 seconds.
+goto finish
+
+:failed
+echo.
+echo FastSwitch failed. Review the PowerShell error above.
+
+:finish
 timeout /t 3 >nul
