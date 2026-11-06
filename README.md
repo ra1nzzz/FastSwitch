@@ -62,8 +62,8 @@ FastSwitch/
 1. **HDMI 还活动时**发 DDC `Input Select = USB-C(27)`（这是显示器唯一会响应 DDC 的时刻，返回 OK）；
 2. **立即** `displayswitch /internal` 切断 HDMI 输出（仅内屏）——HDMI 源在固件回退计时到期前消失，显示器没有"可回退的源"，便停在 USB-C 等待冷启动；
 3. 等待 12 秒（覆盖 6.5 秒冷启动 + 稳定余量）；
-4. `displayswitch /extend` 恢复 HDMI 输出——此时屏幕已锁定稳定的 Mac 画面，**不会跳回**；
-5. Windows 在后台持续输出 HDMI，因此 Mac 端随后发 `m1ddc set input 18` 时能**秒切**回 Windows。
+4. `displayswitch /external` 恢复 HDMI 输出并关闭笔记本内屏——此时屏幕已锁定稳定的 Mac 画面，**不会跳回**；
+5. Windows 在后台仅向 HDMI 输出，因此 Mac 端随后发 `m1ddc set input 18` 时能**秒切**回 Windows，且默认是「仅第二屏幕」。
 
 > 兜底：即便第 1 步 DDC 丢失（例如 /internal 后 AOC 从活动 HMONITOR 枚举中消失），只要 OSD 是 `Input Select = Auto`，HDMI 无信号时显示器也会自动扫描到 USB-C，同样能成功。
 
@@ -238,7 +238,7 @@ MonitorControl（MIT，仅亮度/音量，不做输入切换）、BetterDisplay�
 - Windows 端 DDC 无响应：确认 OSD `DDC/CI=Yes`；检查显卡驱动未禁用 DDC/CI；换原装 HDMI 线（劣质线/转接头不透传 DDC）。
 - USB-C 只有 4K30：OSD 把 USB 设为 2.0（DP Alt 需 4 通道带宽）。
 - PowerShell 脚本报中文解析错误：本仓库脚本已全英文；若自行加中文，请把 `.ps1` 保存为 UTF-8 **带 BOM**。
-- 若日常用「仅外接屏」模式：把 `SwitchToMac.ps1` 末尾的 `/extend` 改为 `/external`。
+- 脚本默认使用「仅第二屏幕」模式；如需恢复笔记本内屏和外接屏扩展，手动运行 `displayswitch.exe /extend`。
 
 ---
 
