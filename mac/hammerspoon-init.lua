@@ -1,64 +1,94 @@
 -- ============================================================================
--- Hammerspoon configuration for FastSwitch
+-- FastSwitch — 顶部菜单栏托盘 + 全局热键（AOC U27U2DS）
 --
--- Install Hammerspoon (macOS global hotkey daemon):
---     brew install --cask hammerspoon
+--   菜单栏图标：FS（点它看状态 / 手动切换 / 测试连接）
+--   Cmd + Ctrl + Alt + W    切到 Windows（HDMI2，VCP 18）
+--   Cmd + Ctrl + Alt + Shift + R   重载本配置
 --
--- Copy this file to ~/.hammerspoon/init.lua:
---     mkdir -p ~/.hammerspoon
---     cp mac/hammerspoon-init.lua ~/.hammerspoon/init.lua
---
--- Then launch Hammerspoon once and grant Accessibility permission when prompted
--- (System Settings -> Privacy & Security -> Accessibility -> toggle Hammerspoon).
---
--- Hotkeys:
---   Ctrl + Alt + W          Switch monitor input to Windows (HDMI2, VCP 18)
---   Ctrl + Alt + Cmd + R    Reload the Hammerspoon config
---
--- Tip: enable "Launch Hammerspoon at login" in its menu so the hotkey survives
--- restarts.
+-- 说明：
+--   * m1ddc 用绝对路径调用（Hammerspoon 任务不继承交互 shell 的 PATH）。
+--   * 原来用 Ctrl+Alt+W，但在这台机器上被其他常驻 App 抢占，故加 Cmd。
+--   * macOS 上 m1ddc 的 `get` 读回值可能不准，但 `set` 切换稳定。
 -- ============================================================================
 
-pcall(function()
-    hs.ipc = require("hs.ipc")
-end)
+pcall(function() hs.ipc = require("hs.ipc") end)
 
--- Locate m1ddc (Apple Silicon Homebrew, then Intel Homebrew).
 local m1ddc = "/opt/homebrew/bin/m1ddc"
-if hs.fs.attributes(m1ddc) == nil then
-    m1ddc = "/usr/local/bin/m1ddc"
-end
 local VCP_HDMI2 = "18"
 
-local function runM1ddc(args, okMessage, failMessage)
+-- 跑一条 m1ddc 命令并弹窗反馈
+local function runM1ddc(args, okMsg, failMsg)
     if hs.fs.attributes(m1ddc) == nil then
-        hs.alert("m1ddc not found: brew install m1ddc")
+        hs.alert("✗ m1ddc 未找到：" .. m1ddc)
         return
     end
-
-    local task = hs.task.new(m1ddc, function(exitCode, stdOut, stdErr)
-        if exitCode == 0 then
-            hs.alert(okMessage, 1.5)
+    hs.task.new(m1ddc, function(code, out, err)
+        if code == 0 then
+            hs.alert(okMsg, 1.6)
         else
-            local detail = (stdErr and stdErr ~= "") and stdErr or stdOut
-            hs.alert(failMessage .. " (code " .. tostring(exitCode) .. ")\n" .. (detail or ""), 4)
+            local detail = (err and err ~= "") and err or out
+            hs.alert(failMsg .. "（code " .. tostring(code) .. "）\n" .. (detail or ""), 4)
         end
-    end, args)
-    task:start()
+    end, args):start()
 end
 
 local function switchToWindows()
     runM1ddc(
         { "set", "input", VCP_HDMI2 },
-        "已切换到 Windows（HDMI2）",
-        "切换到 Windows 失败"
+        "✓ 已切到 Windows（HDMI2）",
+        "✗ 切到 Windows 失败"
     )
 end
 
-hs.hotkey.bind({ "ctrl", "alt" }, "W", switchToWindows)
+-- 不改变任何状态，只探测显示器是否在线
+local function testConnection()
+    if hs.fs.attributes(m1ddc) == nil then
+        hs.alert("✗ m1ddc 未找到", 3)
+        return
+    end
+    hs.task.new(m1ddc, function(code, out, err)
+        if code == 0 then
+            local trim = out and out:gsub("^%s*(.-)%s*$", "%1") or "(无输出)"
+            hs.alert("✓ 显示器在线：\n" .. trim, 4)
+        else
+            hs.alert("✗ 连不上显示器：\n" .. (err or out or ""), 4)
+        end
+    end, { "displays" }):start()
+end
 
-hs.hotkey.bind({ "ctrl", "alt", "cmd" }, "R", function()
-    hs.reload()
-end)
+-- ======================= 顶部菜单栏托盘 =======================
+local menubar = hs.menubar.new()
+if menubar then
+    menubar:setTitle("FS")
+    menubar:setTooltip("FastSwitch — 显示器输入切换")
 
-hs.alert("FastSwitch 已加载：Ctrl+Alt+W 切到 Windows", 2)
+    local function yesno(b) return b and "✓ 是" or "✗ 否" end
+
+    menubar:setMenu(function()
+        local m1ok = hs.fs.attributes(m1ddc) ~= nil
+        local acc  = hs.accessibilityState()
+
+        return {
+            { title = "FastSwitch · 运行中", disabled = true },
+            { title = "-" },
+            { title = "切换到 Windows   ⌃⌥⌘W", fn = switchToWindows },
+            { title = "测试显示器连接",        fn = testConnection },
+            { title = "-" },
+            {
+                title = "状态",
+                menu = {
+                    { title = "m1ddc：" .. (m1ok and "✓ 就绪" or "✗ 未找到"), disabled = true },
+                    { title = "辅助功能权限：" .. yesno(acc), disabled = true },
+                    { title = "热键：Cmd+Ctrl+Alt+W", disabled = true },
+                    { title = "切换到：Windows / HDMI2", disabled = true },
+                }
+            },
+            { title = "-" },
+            { title = "重载配置   ⇧⌃⌥⌘R", fn = function() hs.reload() end },
+        }
+    end)
+end
+
+-- ======================= 全局热键 =======================
+hs.hotkey.bind({ "ctrl", "alt", "cmd" }, "W", switchToWindows)
+hs.hotkey.bind({ "ctrl", "alt", "cmd", "shift" }, "R", function() hs.reload() end)

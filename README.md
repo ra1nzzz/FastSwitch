@@ -13,7 +13,7 @@ Mac mini M2（Apple Silicon）+ Windows 11 游戏本共用一台 AOC U27U2DS，�
 | 方向 | 操作 | 耗时 |
 | --- | --- | --- |
 | **Windows → Mac** | 运行托盘版 `FastSwitch.exe` 后按 `Ctrl+Alt+M`；也可双击 `windows/SwitchToMac.bat` | 约 16 秒 |
-| **Mac → Windows** | 按 `Ctrl+Alt+W`（Hammerspoon 全局热键，已实测）或双击 `mac/切到 Windows.command` | 秒切 |
+| **Mac → Windows** | 按 `Cmd+Ctrl+Alt+W`（Hammerspoon 全局热键，已实测）或双击 `mac/切到 Windows.command` | 秒切 |
 
 - Mac 端：`brew install m1ddc` +（可选）Hammerspoon 绑热键，脚本见 [`mac/`](./mac/)。
 - Windows 端：直接用 [`windows/`](./windows/) 里的零依赖 PowerShell 脚本（只调系统自带 dxva2 API，无需安装任何软件）。
@@ -28,7 +28,7 @@ FastSwitch/
 ├── mac/
 │   ├── fastswitch.sh            # macOS 输入源切换（基于 m1ddc）
 │   ├── 切到 Windows.command      # 双击即切到 Windows
-│   └── hammerspoon-init.lua     # Hammerspoon 全局热键配置（Ctrl+Alt+W）
+│   └── hammerspoon-init.lua     # Hammerspoon 全局热键 + 菜单栏托盘（FS 图标）
 └── windows/
     ├── README-Windows.md        # Windows 端详细说明与故障排查
     ├── SwitchToMac.bat          # 双击/热键入口
@@ -186,12 +186,12 @@ cp mac/hammerspoon-init.lua ~/.hammerspoon/init.lua
 open -a Hammerspoon        # 首次启动按提示授予「辅助功能」权限
 ```
 
-授权后在菜单栏 Hammerspoon 里勾选 **Launch Hammerspoon at login**（重启后热键仍在）。热键：
+授权后在菜单栏 Hammerspoon 里勾选 **Launch Hammerspoon at login**（重启后热键仍在）。配置会在菜单栏显示一个 **FS** 图标，点它可看状态、手动切换、测试连接。热键：
 
-- **`Ctrl + Alt + W`**：切到 Windows（HDMI2，内部执行 `m1ddc set input 18`）
-- **`Ctrl + Alt + Cmd + R`**：重载 Hammerspoon 配置
+- **`Cmd + Ctrl + Alt + W`**：切到 Windows（HDMI2，内部执行 `m1ddc set input 18`）
+- **`Cmd + Ctrl + Alt + Shift + R`**：重载 Hammerspoon 配置
 
-> 改动配置后在菜单栏选 **Reload Config**。可在 Console 里用 `return hs.accessibilityState()` 确认权限、用 `Enabled hotkey ⌃⌥W` 日志确认热键已注册。
+> 为什么是四键：`Ctrl+Alt+W` 在部分机器上会被其他常驻 App 抢占（Hammerspoon 日志显示 `Enabled hotkey` 但按键不触发），加 `Cmd` 可避开绝大多数冲突。改动配置后在菜单栏 FS 里选「重载配置」，或在 Console 里用 `return hs.accessibilityState()` 确认权限。
 
 ### 备选热键方案（零安装）
 
