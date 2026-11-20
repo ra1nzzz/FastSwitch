@@ -28,7 +28,10 @@ FastSwitch/
 ├── mac/
 │   ├── fastswitch.sh            # macOS 输入源切换（基于 m1ddc）
 │   ├── 切到 Windows.command      # 双击即切到 Windows
-│   └── hammerspoon-init.lua     # Hammerspoon 全局热键 + 菜单栏托盘（FS 图标）
+│   ├── hammerspoon-init.lua     # Hammerspoon 全局热键 + 菜单栏托盘 + 内层看门狗
+│   ├── hs-watchdog.sh           # 外层 launchd 兜底看门狗（保 Hammerspoon / 端口假活重启）
+│   ├── com.hammerspoon.watchdog.plist  # 外层看门狗 launchd 任务
+│   └── INPUTLEAP.md             # InputLeap 软件 KVM 部署 + 防自动终止加固（详见）
 └── windows/
     ├── README-Windows.md        # Windows 端详细说明与故障排查
     ├── SwitchToMac.bat          # 双击/热键入口
@@ -242,13 +245,14 @@ MonitorControl（MIT，仅亮度/音量，不做输入切换）、BetterDisplay�
 
 ---
 
-## 11. 待验证：KVM 键鼠联动
+## 11. KVM 键鼠联动（InputLeap 软件方案）
 
-接上 USB-A 转 USB-B 上行线后，需要验证 OSD `USB Selection = Auto` 下键鼠是否随视频源自动跟随：
-- 切到 Windows 时键鼠接收器走 USB-B 上行给笔记本；
-- 切到 Mac 时走 USB-C 上行给 Mac。
+本方案**不拉 USB-A/B 上行线**，键鼠跟随走局域网软件 KVM：Mac mini 作 InputLeap server、Win11 作 client，
+切信号源时键鼠经 24800 端口跟随。双端安装命令、配置文件、macOS 防自动终止加固、双层看门狗与排查命令，
+见 [mac/INPUTLEAP.md](./mac/INPUTLEAP.md)。
 
-若不联动，可在 OSD 手动固定 USB 路径，或退而求其次使用显示器 PBP 分屏。
+> 硬件 USB KVM（OSD `USB Selection = Auto` 随视频源切换上行）作为备选未采用；若软件链路不稳定，
+> 可再接 USB-A 转 USB-B 上行线，在 OSD 手动固定 USB 路径，或用显示器 PBP 分屏。
 
 ---
 
