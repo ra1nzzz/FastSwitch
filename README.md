@@ -186,7 +186,7 @@ m1ddc display list          # 能看到 U27U2 系列即说明 DDC 通道正常
 brew install --cask hammerspoon
 mkdir -p ~/.hammerspoon
 cp mac/hammerspoon-init.lua ~/.hammerspoon/init.lua
-cp mac/fastswitch.sh ~/.hammerspoon/
+cp mac/fastswitch.sh mac/input-leap-key.js ~/.hammerspoon/
 cp mac/input-leap.conf ~/input-leap.conf
 open -a Hammerspoon        # 首次启动按提示授予「辅助功能」权限
 ```

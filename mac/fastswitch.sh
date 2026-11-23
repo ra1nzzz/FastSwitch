@@ -35,7 +35,7 @@ if [[ "$1" == win ]]; then
     return_focus=0
     hscli=/Applications/Hammerspoon.app/Contents/Frameworks/hs/hs
     send_key() {
-        "$hscli" -q -t 2 -c "assert(hs.accessibilityState(), '需要辅助功能权限'); hs.eventtap.keyStroke({'ctrl','alt','cmd'}, '$1', 10000)" </dev/null
+        "$hscli" -q -t 2 -c "assert(hs.accessibilityState(), '需要辅助功能权限'); assert(fastSwitchInputKey('$1'))" </dev/null
     }
     cleanup() {
         if [[ "$return_focus" == 1 ]]; then

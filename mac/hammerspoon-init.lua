@@ -23,7 +23,7 @@ local function ensureInputLeap()
     local _, starting = hs.execute("/usr/bin/pgrep -x input-leaps")
     if starting then return end
     hs.execute(string.format(
-        '/usr/bin/nohup "%s" --name "%s" --disable-crypto --no-daemon --config "%s" > /tmp/inputleap-server.log 2>&1 < /dev/null &',
+        '/usr/bin/nohup /usr/bin/script -qF /tmp/inputleap-server.log "%s" --name "%s" --disable-crypto --no-daemon --config "%s" > /dev/null 2>&1 < /dev/null &',
         inputleapd, inputleapName, inputleapConf))
 end
 
@@ -40,8 +40,14 @@ local function switchToWindows()
     end
 end
 
+function fastSwitchInputKey(key)
+    assert(key == "j" or key == "m")
+    local _, ok = hs.execute('/usr/bin/osascript -l JavaScript "' .. hs.configdir .. '/input-leap-key.js" ' .. key)
+    return ok
+end
+
 local function jumpToMac()
-    hs.eventtap.keyStroke({ "ctrl", "alt", "cmd" }, "m")
+    fastSwitchInputKey("m")
 end
 
 -- 不改变任何状态，只探测显示器是否在线
