@@ -52,7 +52,7 @@ if [[ "$1" == win ]]; then
     connected || fail "Win11 键鼠客户端未连接。请唤醒 Windows，并检查 InputLeap Client Watchdog 和局域网。"
     log=/tmp/inputleap-server.log
     offset=$(/usr/bin/stat -f %z "$log") || fail "无法读取 InputLeap 服务日志。"
-    [[ -x "$hscli" ]] && /usr/bin/pgrep -x Hammerspoon >/dev/null || fail "请启动 Hammerspoon。"
+    [[ -x "$hscli" ]] && /usr/bin/pgrep -ax Hammerspoon >/dev/null || fail "请启动 Hammerspoon。"
     return_focus=1
     send_key j || fail "未能请求键鼠切换，请检查 Hammerspoon IPC 和辅助功能权限。"
     # Only accept a new transition from this attempt. A later bounce cancels it.
