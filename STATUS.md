@@ -141,6 +141,30 @@ while ($true) {
 
 > 注意：只检测**进程是否存在**，不检测连接是否存活；进程在但连接僵死时不会重启。
 
+### 4.4 SSH 远程管理链路（2026-11-23 落地，Mac → Win）
+
+定位：双主机跨机管理补充通道，**局域网内仅公钥**，供 Mac 免密登录 Win 执行命令 / SFTP。
+
+| 项 | 值 |
+| --- | --- |
+| Win 服务端 | 系统组件 `OpenSSH.Server` 9.5p1（微软编译），二进制 `C:\Windows\System32\OpenSSH\sshd.exe` |
+| 服务 | `sshd` Running / Automatic / LocalSystem；`ssh-agent` Stopped / Manual |
+| 监听 | `0.0.0.0:22`、`[::]:22` 双栈 |
+| 认证 | 仅 `publickey`；`PasswordAuthentication no`、`KbdInteractiveAuthentication no`、`ChallengeResponseAuthentication no` |
+| 防火墙规则 | `OpenSSH-Server-LAN`：入站 Allow，TCP 22，RemoteAddress `192.168.66.0/24`，Profile Any |
+| Win 公钥文件 | `C:\ProgramData\ssh\administrators_authorized_keys`（my 属管理员组，管理员公钥不走用户目录 `.ssh\authorized_keys`） |
+| 主机密钥 | `C:\ProgramData\ssh\ssh_host_{rsa,ecdsa,ed25519}_key`；Owner=`BUILTIN\Administrators`，ACL 仅 `SYSTEM` / `Administrators` FullControl |
+| Mac 别名 | `win-nb` → `192.168.66.99:22`，User `my` |
+| Mac 专用密钥 | `~/.ssh/yt-asus-nb_ed25519`（无口令，不复用既有 github/id_ed25519 等密钥）；公钥 fingerprint `SHA256:onGR9KUizMX7ifl9DcbD3W16V3NM+0Qfs13zFPTIGfg` |
+| 实测 | `ssh win-nb` 返回 `yt-asus-nb\my` / `YT-ASUS-NB`；SFTP 子系统可用（`/C:/Users/my`）；服务端 `Authentications that can continue: publickey` |
+
+**踩坑结论（优化时勿回退）：**
+
+1. 本机系统组件通道一度 `NotPresent`（CBS `0x800F0984`，组件存储缺 `wcnagent.dll`）；便携 GitHub 包 10.4.0.0p1-Preview 在 LocalSystem 下 `sshd-auth.exe` 退出 `0xC0000135` 无法完成认证，最终系统组件落地后改用 `System32\OpenSSH` 自带 9.5p1 单体二进制，服务化正常。
+2. 主机私钥 **Owner 必须是 `Administrators`/`SYSTEM`**；若 Owner 为普通用户 `my`，sshd 以 LocalSystem 启动时判 `bad permissions` → `no hostkeys available -- exiting`。
+3. 管理员账户公钥必须放 `administrators_authorized_keys`，该文件 ACL 仅 SYSTEM/Administrators；放用户目录会被 sshd 忽略。
+4. Win WLAN IP 走 DHCP，别名写死 `.99`；若漂移需同步改 `~/.ssh/config` 的 `win-nb` HostName。`OpenSSH.Client` 未装，Win 本机无 `ssh.exe` 客户端。
+
 ---
 
 ## 5. 仓库与版本控制状态
@@ -245,6 +269,8 @@ launchctl list | grep hammerspoon.watchdog
 tail -f /tmp/inputleap-server.log
 m1ddc set input 18      # 切 Windows（HDMI2）
 m1ddc set input 27      # 切 Mac（USB-C）
+ssh win-nb              # 免密登录 Win（仅公钥，别名见 ~/.ssh/config）
+sftp win-nb
 git status && git push origin main
 ```
 
@@ -256,4 +282,7 @@ netstat -ano | Select-String 24800
 Get-ScheduledTask -TaskName "InputLeap Client Watchdog"
 & "$env:LOCALAPPDATA\Programs\InputLeap\input-leapc.exe" `
   --name YT-ASUS-NB --disable-crypto --restart --no-tray 192.168.66.91:24800
+Get-Service sshd,ssh-agent
+Get-NetTCPConnection -State Listen -LocalPort 22
+Get-NetFirewallRule -Name "OpenSSH-Server-LAN" | Get-NetFirewallAddressFilter
 ```
