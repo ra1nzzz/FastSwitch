@@ -56,23 +56,27 @@ if ($ddcExitCode -ne 0 -or $ddcText -notmatch '(?is)\[Monitor \d+\]\s+(?:AOC[^\r
 Write-Host "    USB-C input selected on the AOC monitor."
 
 Write-Host "[2/4] Immediately stop HDMI output (internal only) to block revert ..."
-& displayswitch.exe /internal
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Could not switch Windows to internal display mode; aborting."
+$displaySwitch = Join-Path $env:SystemRoot "System32\DisplaySwitch.exe"
+function Set-DisplayMode($mode) {
+    $process = Start-Process -FilePath $displaySwitch -ArgumentList $mode -Wait -PassThru -ErrorAction Stop
+    if ($process.ExitCode -ne 0) {
+        throw "DisplaySwitch $mode failed ($($process.ExitCode))."
+    }
+}
+
+try {
+    try {
+        Set-DisplayMode "/internal"
+        $session = (Get-Process -Id $PID).SessionId
+        Get-Process input-leapc -ErrorAction SilentlyContinue | Where-Object SessionId -eq $session | Stop-Process -Force -ErrorAction SilentlyContinue
+        Write-Host "[3/4] Wait for the Mac to come up and stabilize ..."
+        Wait-Countdown 12 "waiting for Mac"
+    } finally {
+        Write-Host "[4/4] Restore HDMI output in external-only mode ..."
+        Set-DisplayMode "/external"
+    }
+} catch {
+    Write-Error "$_ If HDMI is inactive, run DisplaySwitch.exe /external."
     exit 1
 }
-Start-Sleep -Seconds 2
-
-Write-Host "[3/4] Wait for the Mac to come up and stabilize ..."
-Wait-Countdown 12 "waiting for Mac"
-
-Write-Host "[4/4] Restore HDMI output in external-only mode (Mac is stable) ..."
-& displayswitch.exe /external
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Could not restore external-only display mode. Run 'displayswitch.exe /external' manually."
-    exit 1
-}
-Start-Sleep -Seconds 2
-
-Write-Host "=== Done: screen should stay on the Mac; HDMI is restored in external-only mode. ==="
-Write-Host "=== On the Mac, run: m1ddc set input 18  to switch back to Windows. ==="
+Write-Host "=== Done: HDMI is restored for switching back to Windows. ==="

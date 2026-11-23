@@ -3,7 +3,7 @@
 双主机共用一套蓝牙键鼠（键盘只连 Mac，鼠标 MX Master 3 走蓝牙），不接 USB-A/B 上行线，
 通过局域网让键鼠在切信号源时跟随另一台主机。基于 [InputLeap](https://github.com/input-leap/input-leap)（Barrier fork）v3.0.3。
 
-- **Mac mini M1 = server**，IP `192.168.66.52`，屏幕名 `yitaodeMac-mini.local`
+- **Mac mini M1 = server**，DHCP 地址，客户端使用主机名，屏幕名 `yitaodeMac-mini.local`
 - **Win11 笔记本 = client**，IP `192.168.66.99`，计算机名 `YT-ASUS-NB`
 - 默认端口 `24800`，双端必须 `--disable-crypto`（debug 版加密握手有兼容问题）
 
@@ -38,29 +38,15 @@ brew cask 无包，从 GitHub release 手动下载对应 debug 版。**GUI 版�
 ### Win client 启动命令
 
 ```powershell
-input-leapc.exe --name YT-ASUS-NB --disable-crypto --restart --no-tray 192.168.66.52:24800
+input-leapc.exe --name YT-ASUS-NB --disable-crypto --restart --no-tray yitaodeMac-mini.local:24800
 ```
 
-- server 地址是**位置参数**，不能写成 `--server=192.168.66.52:24800`（unrecognized option）。
+- server 地址是**位置参数**，不能写成 `--server=yitaodeMac-mini.local:24800`（unrecognized option）。
 - `--restart` 掉线后自动重连；`--name` 用空格分隔不用等号。
 
 ### Mac 配置文件 `/Users/yitao/input-leap.conf`
 
-```ini
-section: screens
-  yitaodeMac-mini.local:
-  YT-ASUS-NB:
-end
-
-section: links
-  yitaodeMac-mini.local:
-    right = YT-ASUS-NB
-  YT-ASUS-NB:
-    left = yitaodeMac-mini.local
-end
-```
-
-links 段必须用缩进格式。v3.0.3 debug 版不认 `hotkeys` section；切屏热键用内置 `Ctrl+Alt+Shift`。
+使用仓库的 [input-leap.conf](./input-leap.conf)。脚本通过 Ctrl+Alt+Cmd+J 请求将键鼠交给 Win11，Ctrl+Alt+Cmd+M 将键鼠送回 Mac。配置放入 `~/input-leap.conf` 后，运行 `pkill -TERM -x input-leaps` 由 Hammerspoon 看门狗重新拉起服务。屏幕名必须与两端启动参数一致。
 
 ---
 
@@ -132,9 +118,8 @@ log show --predicate 'process == "input-leaps"' --last 5m \
 
 ### 内层：Hammerspoon 定时器（`~/.hammerspoon/init.lua`）
 
-- 每 10s 用 `lsof -iTCP:24800 -sTCP:LISTEN` 探测端口；空则由 `hs.execute nohup` 拉起 server（继承 Hammerspoon 的 AX 信任）。
-- 存活判定**按端口取 PID**，不要 `grep input-leaps`：lsof COMMAND 列按 8 字符截断成 `input-lea`，永远计数 0。
-- 拉起前先按端口 `lsof -tiTCP:24800` 取 PID `kill -9` 清残留。
+- 每 10 秒检查监听端口和进程。服务缺失时由 Hammerspoon 拉起，已有进程启动期间等待下一次检查。
+- 切换时单独检查已建立连接和 InputLeap 焦点日志。
 
 ### 外层：launchd 兜底（`mac/com.hammerspoon.watchdog.plist` + `mac/hs-watchdog.sh`）
 
@@ -145,8 +130,11 @@ log show --predicate 'process == "input-leaps"' --last 5m \
 
 ### Win client 看门狗
 
-- 脚本 `C:\Users\my\AppData\Local\Programs\InputLeap\watchdog.ps1`：`while` 循环每 10s 检测 `input-leapc` 进程，掉了 `Start-Process -WindowStyle Hidden` 拉起。
-- 计划任务 `InputLeap Client Watchdog`：AtLogOn 触发，`powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File <脚本>`。
+从 Windows 仓库根目录运行以下命令。它会检查 Mac 名称解析、替换当前用户的 `InputLeap Client Watchdog` 登录任务并立即启动。默认按 Mac 主机名解析 IPv4，连续三次检查未找到匹配地址的客户端连接时重新启动客户端。若局域网无法解析 .local，可在路由器为 Mac 保留 DHCP 地址，并在安装命令末尾加 `-Server 保留的IPv4地址`。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\windows\watchdog.ps1 -Install
+```
 
 ### 部署外层 launchd 任务
 
@@ -202,4 +190,4 @@ Get-ScheduledTask -TaskName "InputLeap Client Watchdog"
 ### 已知遗留（不再优化）
 
 - 鼠标闪烁：Mac Retina HDPI 与 Win 1x DPI 不一致 + 局域网延迟；Win 鼠标加速已关（MouseSpeed=0, Threshold1/2=0）。
-- Win 端 `FastSwitch.Tray`（Ctrl+Alt+M）目前只切 DDC 信号，尚未联动 InputLeap 把键鼠切回 server 侧。
+- Win 端 `FastSwitch.Tray`（Ctrl+Alt+M）与 PowerShell 入口均在断开 HDMI 后结束当前会话的 InputLeap 客户端，使 server 收回键鼠。Windows 登录看门狗会重新连接。手动恢复时可按 Ctrl+Alt+Cmd+M 将键鼠交还 Mac。

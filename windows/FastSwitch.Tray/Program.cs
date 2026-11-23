@@ -78,9 +78,9 @@ internal sealed class TrayApplicationContext : ApplicationContext
             // after the Mac signal has stabilized.
             var ddcWarning = await Task.Run(MonitorInput.SelectUsbC);
 
-            await RunDisplaySwitchAsync("/internal");
             internalModeEnabled = true;
-            await Task.Delay(TimeSpan.FromSeconds(2));
+            await RunDisplaySwitchAsync("/internal");
+            ReleaseInputLeapFocus();
 
             for (var seconds = 12; seconds >= 1; seconds--)
             {
@@ -90,7 +90,6 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
             await RunDisplaySwitchAsync("/external");
             internalModeEnabled = false;
-            await Task.Delay(TimeSpan.FromSeconds(2));
             _icon.Text = "FastSwitch：Ctrl+Alt+M 切换到 Mac";
             if (string.IsNullOrEmpty(ddcWarning))
             {
@@ -127,6 +126,26 @@ internal sealed class TrayApplicationContext : ApplicationContext
             _exitMenuItem.Enabled = true;
             if (_icon.Text.StartsWith("FastSwitch：切换失败", StringComparison.Ordinal))
                 _icon.Text = "FastSwitch：Ctrl+Alt+M 切换到 Mac";
+        }
+    }
+
+    // Disconnect the local client so the server releases focus immediately.
+    // The existing login watchdog reconnects it for the next switch.
+    private static void ReleaseInputLeapFocus()
+    {
+        using var self = Process.GetCurrentProcess();
+        foreach (var client in Process.GetProcessesByName("input-leapc"))
+        {
+            using (client)
+            {
+                try
+                {
+                    if (client.SessionId == self.SessionId)
+                        client.Kill();
+                }
+                catch (InvalidOperationException) { } // Already disconnected.
+                catch (Win32Exception ex) { Debug.WriteLine(ex); }
+            }
         }
     }
 

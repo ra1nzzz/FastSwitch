@@ -23,7 +23,7 @@
 | 文件 | 作用 |
 | --- | --- |
 | `SwitchToMac.bat` | **双击/热键入口**。内部调用下面的 ps1 |
-| `SwitchToMac.ps1` | **切到 Mac 的完整序列**：发 DDC → 切 HDMI → 等待 → 以仅外接屏模式恢复 HDMI（约 16 秒，全自动） |
+| `SwitchToMac.ps1` | **切到 Mac 的完整序列**：发 DDC → 切 HDMI → 等待 → 以仅外接屏模式恢复 HDMI（12 秒稳定等待，另加驱动耗时） |
 | `MonitorInput.ps1` | 零依赖 DDC 工具，直接调 Windows 自带 dxva2 API。支持 `list/get/caps/dump/usbc/hdmi1/hdmi2/set/getcode/setcode` 等 |
 | `FastSwitch.Tray/` | 后台托盘程序源码与图标；发布后按 `Ctrl+Alt+M` 切换 |
 
@@ -61,10 +61,10 @@ dotnet publish .\windows\FastSwitch.Tray\FastSwitch.Tray.csproj -c Release -r wi
 在 Mac 上：双击仓库 `mac/切到 Windows.command`，或终端执行：
 
 ```
-m1ddc set input 18
+./mac/fastswitch.sh win
 ```
 
-因为此时 Windows HDMI 已在后台输出，会**秒切**回 Windows。
+Windows 端先在仓库根目录执行 `powershell -NoProfile -ExecutionPolicy Bypass -File .\windows\watchdog.ps1 -Install`。Mac 收到 InputLeap 焦点交接确认后切到已在后台输出的 HDMI。
 
 ---
 

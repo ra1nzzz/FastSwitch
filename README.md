@@ -2,7 +2,7 @@
 
 Mac mini M2（Apple Silicon）+ Windows 11 游戏本共用一台 AOC U27U2DS，不用起身按显示器摇杆，**热键 / 双击即可一键切换输入源**，并让一套键鼠随画面自动跟随（软件 KVM）。
 
-> **2026-10-19 双向切换已在真机完整打通并实测稳定**：Mac 走 USB-C、Windows 走 HDMI2；零第三方依赖、无需 SSH/网络。详细机制见第 2 节。
+> **2026-10-19 双向切换已在真机完整打通并实测稳定**：Mac 走 USB-C、Windows 走 HDMI2；画面通过 DDC 切换，蓝牙键鼠通过局域网 InputLeap 转发。详细机制见第 2 节。
 
 ---
 
@@ -12,10 +12,10 @@ Mac mini M2（Apple Silicon）+ Windows 11 游戏本共用一台 AOC U27U2DS，�
 
 | 方向 | 操作 | 耗时 |
 | --- | --- | --- |
-| **Windows → Mac** | 运行托盘版 `FastSwitch.exe` 后按 `Ctrl+Alt+M`；也可双击 `windows/SwitchToMac.bat` | 约 16 秒 |
-| **Mac → Windows** | 按 `Cmd+Ctrl+Alt+W`（Hammerspoon 全局热键，已实测）或双击 `mac/切到 Windows.command` | 秒切 |
+| **Windows → Mac** | 运行托盘版 `FastSwitch.exe` 后按 `Ctrl+Alt+M`；也可双击 `windows/SwitchToMac.bat` | 12 秒等待 + 驱动耗时 |
+| **Mac → Windows** | 按 `Cmd+Ctrl+Alt+W`（Hammerspoon 全局热键）或双击 `mac/切到 Windows.command` | 收到键鼠切换确认即发送 DDC |
 
-- Mac 端：`brew install m1ddc` +（可选）Hammerspoon 绑热键，脚本见 [`mac/`](./mac/)。
+- Mac 端：`brew install m1ddc` +Hammerspoon 与 InputLeap（软件键鼠交接），脚本见 [`mac/`](./mac/)。
 - Windows 端：直接用 [`windows/`](./windows/) 里的零依赖 PowerShell 脚本（只调系统自带 dxva2 API，无需安装任何软件）。
 
 ---
@@ -72,7 +72,7 @@ FastSwitch/
 
 ### 2.3 Mac → Windows
 
-一条命令 `m1ddc set input 18`（HDMI2）。因为 Windows HDMI 已在后台输出，握手很快、秒切稳定。
+热键、双击和 `fastswitch.sh win` 共用同一个流程。Mac 检查客户端连接，请求 InputLeap 切换键鼠，收到本次进入 `YT-ASUS-NB` 的日志并复查连接后，立即写 HDMI2。客户端离线时画面留在 Mac。仅切画面可用 `fastswitch.sh hdmi2`。
 
 ---
 
@@ -186,17 +186,21 @@ m1ddc display list          # 能看到 U27U2 系列即说明 DDC 通道正常
 brew install --cask hammerspoon
 mkdir -p ~/.hammerspoon
 cp mac/hammerspoon-init.lua ~/.hammerspoon/init.lua
+cp mac/fastswitch.sh ~/.hammerspoon/
+cp mac/input-leap.conf ~/input-leap.conf
 open -a Hammerspoon        # 首次启动按提示授予「辅助功能」权限
 ```
 
+已有自定义 InputLeap 配置时，将样例的 `section: options` 条目合并到现有配置。升级后重载 Hammerspoon，并执行 `pkill -TERM -x input-leaps` 让看门狗重新启动 server 并加载新键位。Windows 上先运行第 11 节的客户端安装命令。
+
 授权后在菜单栏 Hammerspoon 里勾选 **Launch Hammerspoon at login**（重启后热键仍在）。配置会在菜单栏显示一个 **FS** 图标，点它可看状态、手动切换、测试连接。热键：
 
-- **`Cmd + Ctrl + Alt + W`**：切到 Windows（HDMI2，内部执行 `m1ddc set input 18`）
+- **`Cmd + Ctrl + Alt + W`**：切到 Windows（确认 InputLeap 焦点后切 HDMI2）
 - **`Cmd + Ctrl + Alt + Shift + R`**：重载 Hammerspoon 配置
 
 > 为什么是四键：`Ctrl+Alt+W` 在部分机器上会被其他常驻 App 抢占（Hammerspoon 日志显示 `Enabled hotkey` 但按键不触发），加 `Cmd` 可避开绝大多数冲突。改动配置后在菜单栏 FS 里选「重载配置」，或在 Console 里用 `return hs.accessibilityState()` 确认权限。
 
-### 备选热键方案（零安装）
+### 备选热键入口
 
 在「快捷指令」App 新建「快速操作」→ 添加「运行 Shell 脚本」→ 填 `fastswitch.sh` 的绝对路径加 `win` 参数，再到系统设置 → 键盘 → 快捷键 → 服务中绑定。也可用 Raycast 扩展「Display Input Switcher」（m1ddc 的 GUI）。
 
@@ -246,6 +250,12 @@ MonitorControl（MIT，仅亮度/音量，不做输入切换）、BetterDisplay�
 ---
 
 ## 11. KVM 键鼠联动（InputLeap 软件方案）
+
+在 Windows 仓库根目录用当前登录用户运行一次，更新并启动客户端看门狗：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\windows\watchdog.ps1 -Install
+```
 
 本方案**不拉 USB-A/B 上行线**，键鼠跟随走局域网软件 KVM：Mac mini 作 InputLeap server、Win11 作 client，
 切信号源时键鼠经 24800 端口跟随。双端安装命令、配置文件、macOS 防自动终止加固、双层看门狗与排查命令，
