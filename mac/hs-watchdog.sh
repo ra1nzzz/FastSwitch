@@ -16,7 +16,7 @@ if ! /usr/bin/pgrep -x Hammerspoon >/dev/null 2>&1; then
 fi
 
 # 2. server 端口存活则清零计数
-if /usr/sbin/lsof -tiTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1; then
+if /usr/sbin/lsof -nP -tiTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1; then
     /bin/echo 0 > "$STATE" 2>/dev/null
     exit 0
 fi
@@ -28,6 +28,7 @@ MISS=$((MISS+1))
 /bin/echo "$MISS" > "$STATE" 2>/dev/null
 
 if [ "$MISS" -ge 3 ]; then
+    /usr/bin/pkill -TERM -u "$UID" -x input-leaps 2>/dev/null
     /usr/bin/killall Hammerspoon 2>/dev/null
     /bin/sleep 2
     /usr/bin/open -a Hammerspoon
