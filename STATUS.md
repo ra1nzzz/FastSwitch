@@ -165,6 +165,37 @@ while ($true) {
 3. 管理员账户公钥必须放 `administrators_authorized_keys`，该文件 ACL 仅 SYSTEM/Administrators；放用户目录会被 sshd 忽略。
 4. Win WLAN IP 走 DHCP，别名写死 `.99`；若漂移需同步改 `~/.ssh/config` 的 `win-nb` HostName。`OpenSSH.Client` 未装，Win 本机无 `ssh.exe` 客户端。
 
+### 4.5 Win 看门狗新版部署（2026-11-23 落地，替代 4.3 旧版）
+
+定位：把写死旧 `.52`、只看进程的旧看门狗，换成**按 mDNS 主机名解析 + 连接存活探测 + 断线重连**的新版；经已打通的 SSH（`win-nb`）从 Mac 推送部署。
+
+| 项 | 值（实测） |
+| --- | --- |
+| 脚本位置（Win） | `%LOCALAPPDATA%\Programs\InputLeap\watchdog.ps1`（仓库 `windows/watchdog.ps1`） |
+| 计划任务 | `InputLeap Client Watchdog`，State=Running；主体 `my` / Interactive / Limited；AtLogOn 触发；`ExecutionTimeLimit=PT0S`（无时限） |
+| 任务动作 | `powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "<dest>\watchdog.ps1" -Server "yitaodeMac-mini.local"` |
+| 解析目标 | `-Server yitaodeMac-mini.local`（mDNS 主机名，不再写死 IP）；实测解析到 `192.168.66.91` |
+| 守护周期 | 每 5s 一轮；同会话、同路径的 `input-leapc.exe`；查 ESTABLISHED 到解析地址 `:24800` |
+| 重连策略 | 有活跃连接则清理冗余实例；无进程立即重启；进程在但连续 3 轮未活跃则杀进程重启 |
+| client 参数 | `--name YT-ASUS-NB --disable-crypto --restart --no-tray <addr>:24800`（地址为位置参数） |
+
+**部署命令（脚本所在目录，PowerShell 5.1）：**
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\watchdog.ps1 -Install
+```
+
+**踩坑结论（勿回退）：**
+
+- Windows 上 .NET `[Net.Dns]::GetHostAddresses("*.local")` 对 mDNS 只返回链路本地 IPv6（`fe80::...%8`），**丢弃 A 记录**；而 `Resolve-DnsName -Name <host>.local -Type A` 能稳定取到 IPv4。脚本 `Resolve-ServerIPv4` 改为 `Resolve-DnsName -Type A` 优先、`GetHostAddresses` 回退。
+- 安装前先停旧任务、清掉僵死 client，避免旧实例占用；`-Install` 内部会先校验主机名可解析再替换运行中的看门狗。
+
+**真机验证（本轮）：**
+
+- 首轮拉起 client PID `12424`，ESTABLISHED `192.168.66.99:12480 → 192.168.66.91:24800`。
+- 手动杀掉 `12424` 后，看门狗自动拉起新 client PID `13992`，重连 ESTABLISHED `192.168.66.99:1551 → 192.168.66.91:24800`。
+- **尚未验收**：键鼠实际穿透交接（光标跨屏、键盘鼠标跟随）与双机切换耗时，需物理键鼠 + DDC 切画面人工实测；网络链路与看门狗守护已验证通过。
+
 ---
 
 ## 5. 仓库与版本控制状态
