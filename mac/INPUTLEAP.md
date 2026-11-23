@@ -191,3 +191,10 @@ Get-ScheduledTask -TaskName "InputLeap Client Watchdog"
 
 - 鼠标闪烁：Mac Retina HDPI 与 Win 1x DPI 不一致 + 局域网延迟；Win 鼠标加速已关（MouseSpeed=0, Threshold1/2=0）。
 - Win 端 `FastSwitch.Tray`（Ctrl+Alt+M）与 PowerShell 入口均在断开 HDMI 后结束当前会话的 InputLeap 客户端，使 server 收回键鼠。Windows 登录看门狗会重新连接。手动恢复时可按 Ctrl+Alt+Cmd+M 将键鼠交还 Mac。
+
+### 2026-11-24 双机验收记录
+
+- 客户端 TCP 已连接时，Hammerspoon 的普通模拟按键未触发 InputLeap 的交接日志。旧路径两次分别在 2.03 秒、1.87 秒报错退出，均停在 HDMI 写入之前。
+- 改为从已授权的 Hammerspoon 发送 HID 事件，并让服务日志即时刷新。00:07:24 日志确认进入 YT-ASUS-NB，随后 HDMI2 写入返回 18。正向脚本用时 0.61 秒，未测面板点亮时间。
+- 00:11:03 客户端连接关闭，Mac server 记录进入本机并显示光标。00:11:06 Win 看门狗启动的客户端重新连上。反向流程保留 12 秒 USB-C 稳定等待。
+- Mac 当天未能解析 YT-ASUS-NB.local。SSH 继续使用 win-nb 的 IPv4 配置，建议在路由器为笔记本保留当前地址。
